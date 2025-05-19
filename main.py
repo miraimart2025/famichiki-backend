@@ -4,6 +4,7 @@ import pandas as pd
 import xgboost as xgb
 import requests
 import jpholiday
+import pytz
 
 app = FastAPI()
 
@@ -33,7 +34,8 @@ def get_weather_hakodate():
 
 @app.get("/predict")
 def predict_sales_batch():
-    now = datetime.now()
+    JST = pytz.timezone("Asia/Tokyo")
+    now = datetime.now(JST)
     weather = get_weather_hakodate()
 
     span_times = [
@@ -86,7 +88,7 @@ def predict_sales_batch():
         prediction = booster.predict(dmatrix)[0]
 
         results.append({
-            "hour": dt.strftime("%H:%M"),
+            "hour": dt.strftime("%H"),
             "predicted_sales": round(float(prediction), 2)
         })
 
@@ -101,7 +103,9 @@ def predict_sales_at(
     hour: int = Query(..., ge=0, le=23, description="開始時刻 (0〜23時)")
 ):
     try:
-        base_dt = datetime.strptime(date, "%Y-%m-%d").replace(hour=hour)
+        naive_dt = datetime.strptime(date, "%Y-%m-%d").replace(hour=hour)
+        JST = pytz.timezone("Asia/Tokyo")
+        base_dt = JST.localize(naive_dt)
     except ValueError:
         return {"error": "Invalid date format. Use YYYY-MM-DD."}
 
