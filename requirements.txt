@@ -6,5 +6,4 @@ datetime
 requests
 jpholiday
 pytz
-os
 dotenv
