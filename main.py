@@ -5,6 +5,9 @@ import xgboost as xgb
 import requests
 import jpholiday
 import pytz
+import os 
+from dotenv import load_dotenv
+load_dotenv()  # ← 起動時に環境変数読み込み
 
 app = FastAPI()
 
@@ -14,7 +17,9 @@ booster.load_model("hondori.json")  # パスは環境に合わせて調整
 
 # 天気情報を取得（函館）
 def get_weather_hakodate():
-    API_KEY = "ce10647c93ff6cce8e5450bdc6ca66ee"  # ← OpenWeatherMapのAPIキーを設定
+    API_KEY = os.getenv("OPENWEATHER_API_KEY")  
+    if not API_KEY:
+        raise RuntimeError("環境変数 OPENWEATHER_API_KEY が設定されていません")
     url = "https://api.openweathermap.org/data/2.5/weather"
     params = {
         "q": "Hakodate,jp",
