@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware  # ← CORS用ミドルウェアの読み込み
 from datetime import datetime, timedelta
 import pandas as pd
 import xgboost as xgb
@@ -10,6 +11,16 @@ from dotenv import load_dotenv
 load_dotenv()  # ← 起動時に環境変数読み込み
 
 app = FastAPI()
+
+# CORS設定の追加
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 # XGBoost Boosterモデルの読み込み
 booster = xgb.Booster()
