@@ -21,7 +21,7 @@ app = FastAPI()
 
 def log_to_spreadsheet(button_name: str, timestamp: str):
     scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-    creds = ServiceAccountCredentials.from_json_keyfile_name('GOOGLE_SERVICE_ACCOUNT_JSON', scope)
+    creds = ServiceAccountCredentials.from_json_keyfile_name('famichiki-43e71c843b95.json', scope)
     client = gspread.authorize(creds)
     # スプレッドシート名とシート名を適宜変更してください
     sheet = client.open("famichiki").sheet1
