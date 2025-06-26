@@ -7,6 +7,8 @@ import requests
 import jpholiday   
 import pytz
 import os
+from fastapi import Query
+from typing import Optional
 from dotenv import load_dotenv
 load_dotenv()  # ← 起動時に環境変数読み込み
 app = FastAPI()
@@ -30,6 +32,7 @@ def get_weather_hakodate():
     API_KEY = os.getenv("OPENWEATHER_API_KEY")
     if not API_KEY:
         raise RuntimeError("環境変数 OPENWEATHER_API_KEY が設定されていません")
+    
     url = "https://api.openweathermap.org/data/2.5/weather"
     params = {
         "q": "Hakodate,jp",
@@ -37,6 +40,11 @@ def get_weather_hakodate():
         "units": "metric"
     }
     response = requests.get(url, params=params)
+
+    # 🔽 エラーハンドリング追加
+    if response.status_code != 200:
+        raise RuntimeError(f"天気情報の取得に失敗しました (status code: {response.status_code})")
+
     data = response.json()
 
     return {
@@ -46,6 +54,7 @@ def get_weather_hakodate():
         "wind_speed": data["wind"]["speed"],
         "wind_deg": data["wind"]["deg"]
     }
+
         
 @app.get("/predict")
 def predict_sales_batch():  
@@ -103,12 +112,10 @@ def predict_sales_batch():
     
         results.append({
             "hour": dt.strftime("%H"),
-            "predicted_sales": round(float(prediction))  # 小数点以下を四捨五入して整数に
+            "predicted_sales": round(float(prediction), 2)  # ← ここを修正
         })
         
     return {"predictions": results}
-from fastapi import Query
-from typing import Optional
 
 @app.get("/predict_at")
 def predict_sales_at(
