@@ -112,7 +112,7 @@ def predict_sales_batch():
     
         results.append({
             "hour": dt.strftime("%H"),
-            "predicted_sales": round(float(prediction), 2)  # ← ここを修正
+            "predicted_sales": round(float(prediction))  # ← ここを修正
         })
         
     return {"predictions": results}
