@@ -7,37 +7,11 @@ import requests
 import jpholiday   
 import pytz
 import os
+from fastapi import Query
+from typing import Optional
 from dotenv import load_dotenv
-
-import datetime
-from fastapi import Request
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
-
-
 load_dotenv()  # ← 起動時に環境変数読み込み
 app = FastAPI()
-
-
-def log_to_spreadsheet(button_name: str, timestamp: str):
-    scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-    creds = ServiceAccountCredentials.from_json_keyfile_name('GOOGLE_SERVICE_ACCOUNT_JSON', scope)
-    client = gspread.authorize(creds)
-    # スプレッドシート名とシート名を適宜変更してください
-    sheet = client.open("famichiki").sheet1
-    # スプレッドシートに書き込み（例: A列＝時刻、B列＝ボタン名）
-    sheet.append_row([timestamp, button_name])
-from pydantic import BaseModel
-
-class ButtonClick(BaseModel):
-    button_name: str
-
-@app.post("/log_button_click")
-async def log_button_click(data: ButtonClick):
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    log_to_spreadsheet(data.button_name, timestamp)
-    return {"status": "success", "message": f"{data.button_name} logged at {timestamp}"}
-
 
 # CORS設定の追加
 app.add_middleware(
@@ -58,6 +32,7 @@ def get_weather_hakodate():
     API_KEY = os.getenv("OPENWEATHER_API_KEY")
     if not API_KEY:
         raise RuntimeError("環境変数 OPENWEATHER_API_KEY が設定されていません")
+    
     url = "https://api.openweathermap.org/data/2.5/weather"
     params = {
         "q": "Hakodate,jp",
@@ -65,6 +40,11 @@ def get_weather_hakodate():
         "units": "metric"
     }
     response = requests.get(url, params=params)
+
+    # 🔽 エラーハンドリング追加
+    if response.status_code != 200:
+        raise RuntimeError(f"天気情報の取得に失敗しました (status code: {response.status_code})")
+
     data = response.json()
 
     return {
@@ -74,6 +54,7 @@ def get_weather_hakodate():
         "wind_speed": data["wind"]["speed"],
         "wind_deg": data["wind"]["deg"]
     }
+
         
 @app.get("/predict")
 def predict_sales_batch():  
@@ -131,12 +112,10 @@ def predict_sales_batch():
     
         results.append({
             "hour": dt.strftime("%H"),
-            "predicted_sales": round(float(prediction))  # 小数点以下を四捨五入して整数に
+            "predicted_sales": round(float(prediction))  # ← ここを修正
         })
         
     return {"predictions": results}
-from fastapi import Query
-from typing import Optional
 
 @app.get("/predict_at")
 def predict_sales_at(
