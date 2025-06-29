@@ -1,7 +1,7 @@
 fastapi==0.95.2
 uvicorn==0.22.0
 pandas
-xgboost==1.7.6
+xgboost
 requests
 jpholiday
 pytz
