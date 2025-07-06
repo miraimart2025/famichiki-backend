@@ -9,10 +9,10 @@ import pytz
 import os
 from dotenv import load_dotenv
 
-import datetime
 from fastapi import Request
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+from pydantic import BaseModel
 
 
 load_dotenv()  # ← 起動時に環境変数読み込み
@@ -27,7 +27,6 @@ def log_to_spreadsheet(button_name: str, timestamp: str):
     client = gspread.authorize(creds)
     sheet = client.open("famichiki").sheet1
     sheet.append_row([timestamp, button_name])
-
 from pydantic import BaseModel
 
 class ButtonClick(BaseModel):
