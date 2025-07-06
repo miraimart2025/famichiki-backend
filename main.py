@@ -50,7 +50,7 @@ app.add_middleware(
     
 # XGBoost Boosterモデルの読み込み
 booster = xgb.Booster()
-booster.load_model("hondori.json")  # パスは環境に合わせて調整
+booster.load_model("model.json")  # パスは環境に合わせて調整
         
 # 天気情報を取得（函館）
 def get_weather_hakodate():
