@@ -21,12 +21,13 @@ app = FastAPI()
 
 def log_to_spreadsheet(button_name: str, timestamp: str):
     scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-    creds = ServiceAccountCredentials.from_json_keyfile_name('GOOGLE_SERVICE_ACCOUNT_JSON', scope)
+    json_str = os.getenv('GOOGLE_SERVICE_ACCOUNT_JSON')
+    json_dict = json.loads(json_str)  # 文字列→辞書に変換
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(json_dict, scope)
     client = gspread.authorize(creds)
-    # スプレッドシート名とシート名を適宜変更してください
     sheet = client.open("famichiki").sheet1
-    # スプレッドシートに書き込み（例: A列＝時刻、B列＝ボタン名）
     sheet.append_row([timestamp, button_name])
+
 from pydantic import BaseModel
 
 class ButtonClick(BaseModel):
