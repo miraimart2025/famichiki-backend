@@ -1,23 +1,21 @@
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware  # ← CORS用ミドルウェアの読み込み
+from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime, timedelta
 import pandas as pd
 import xgboost as xgb
 import requests
-import jpholiday   
+import jpholiday
 import pytz
 import os
 from dotenv import load_dotenv
+import json
 
 from fastapi import Request
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-from pydantic import BaseModel
 
-
-load_dotenv()  # ← 起動時に環境変数読み込み
+load_dotenv()
 app = FastAPI()
-
 
 def log_to_spreadsheet(button_name: str, timestamp: str):
     scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
@@ -29,22 +27,23 @@ def log_to_spreadsheet(button_name: str, timestamp: str):
     sheet.append_row([timestamp, button_name])
 from pydantic import BaseModel
 
+from pydantic import BaseModel
+
 class ButtonClick(BaseModel):
     button_name: str
 
 @app.post("/log_button_click")
 async def log_button_click(data: ButtonClick):
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     log_to_spreadsheet(data.button_name, timestamp)
     return {"status": "success", "message": f"{data.button_name} logged at {timestamp}"}
 
-
-# CORS設定の追加
+# CORS設定
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],   
+    allow_methods=["*"],
     allow_headers=["*"],
 )
         
