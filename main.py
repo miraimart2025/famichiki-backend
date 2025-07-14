@@ -34,6 +34,7 @@ class ButtonClick(BaseModel):
 
 @app.post("/log_button_click")
 async def log_button_click(data: ButtonClick):
+    JST = pytz.timezone("Asia/Tokyo")
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     log_to_spreadsheet(data.button_name, timestamp)
     return {"status": "success", "message": f"{data.button_name} logged at {timestamp}"}
