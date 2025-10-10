@@ -10,7 +10,7 @@ class AuthService_abs(ABC):
         pass
 
     @abstractmethod
-    def generate_jwt(self, store_id: str, expires_in=3600) -> str:
+    def generate_jwt(self, store_id: str, expires_in: int = 3600) -> str:
         pass
 
     @abstractmethod
@@ -18,7 +18,7 @@ class AuthService_abs(ABC):
         pass
 
 class AuthService:
-    def __init__(self, users_manager: UsersManager, secret_key: str):
+    def __init__(self, users_manager: UsersManager, secret_key: str = None):
         self.users_manager = users_manager
         self._SECRET_KEY = secret_key
 
