@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import json
 import os
 
-USERS_PATH = 'users.json'
+USERS_PATH = 'users_manager.users.json'
 
 class UsersManager_abs(ABC): # ABCを継承することで抽象クラスとなる
     @abstractmethod
@@ -14,23 +14,44 @@ class UsersManager_abs(ABC): # ABCを継承することで抽象クラスとな�
         pass
 
 class UsersManager(UsersManager_abs):
-    def __init__(self):
-        self.users = json.load(open(USERS_PATH, 'r')) if os.path.exists(USERS_PATH) else {}
-        self.next_id = max(self.users.keys(), default=0) + 1
+    def __init__(self, users_path: str = USERS_PATH):
+        self.users_path = users_path
+        self.users = self._load_users()
+        self.next_id = self._get_next_id()
+
+    def _load_users(self) -> dict:
+        """
+        users_path からユーザー情報を読み込む。
+        ファイルが存在しない、空、または壊れている場合は空辞書を返す。
+        """
+        # 空ファイルなら初期化
+        if not os.path.exists(self.users_path) or os.path.getsize(self.users_path) == 0:
+            return {}
+        try:
+            with open(self.users_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except json.JSONDecodeError:
+            return {}
+        
+    def _get_next_id(self):
+        """既存ユーザーから次に割り当てるIDを決定"""
+        if not self.users:
+            return 1
+        return max(int(uid) for uid in self.users.keys()) + 1
 
     def _save(self):
         """
         ユーザーデータをJSONファイルに保存する
         """
-        with open(USERS_PATH, 'w', encoding='utf-8') as f:
+        with open(self.users_path, 'w', encoding='utf-8') as f:
             json.dump(self.users, f, ensure_ascii=False, indent=4)
 
     def _isexist_user(self, hashed_user_data):
         """
-        同じユーザーが存在するか確認する
+        store_id が既に存在するか確認する
         """
         for user in self.users.values():
-            if hashed_user_data == user:
+            if hashed_user_data['store_id'] == user.get('store_id'):
                 return True
         return False
 

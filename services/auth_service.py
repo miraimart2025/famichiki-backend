@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import hashlib
 import jwt
 from datetime import datetime, timedelta, timezone
-from users_manager import UsersManager
+from users_manager.users_manager import UsersManager
 
 class AuthService_abs(ABC):
     @abstractmethod
@@ -17,7 +17,7 @@ class AuthService_abs(ABC):
     def verify_jwt(self, token: str) -> dict | None:
         pass
 
-class AuthService:
+class AuthService(AuthService_abs):
     def __init__(self, users_manager: UsersManager, secret_key: str = None):
         self.users_manager = users_manager
         self._SECRET_KEY = secret_key

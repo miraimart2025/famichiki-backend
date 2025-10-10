@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime, timedelta
 import pandas as pd
@@ -208,3 +208,46 @@ def predict_sales_at(
         
     return {"predictions": results}
             
+
+
+# AuthServiceを初期化
+from services.auth_service import AuthService
+from users_manager.users_manager import UsersManager
+
+users_manager = UsersManager()
+secret_key = os.getenv("SECRET_KEY")
+auth_service = AuthService(users_manager, secret_key)
+
+# リクエストボディ用スキーマ
+class LoginRequest(BaseModel):
+    store_id: str
+    password: str
+
+# レスポンス用スキーマ
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+@app.post("/auth/login", response_model=TokenResponse)
+def login(request: LoginRequest):
+    """
+    認証API：
+    store_idとpasswordを受け取り、認証成功時にJWTを返す。
+    """
+    token = auth_service.authenticate(request.store_id, request.password)
+    if token is None:
+        raise HTTPException(status_code=401, detail="Invalid store_id or password")
+    
+    return TokenResponse(access_token=token)
+
+
+@app.get("/auth/verify")
+def verify_token(Authorization: str = Header(...)):
+    """
+    AuthorizationヘッダからJWTを検証
+    """
+    token = Authorization.replace("Bearer ", "")
+    payload = auth_service.verify_jwt(token)
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    return {"store_id": payload["store_id"], "message": "Token is valid"}

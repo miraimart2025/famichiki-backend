@@ -1,0 +1,18 @@
+{
+    "1": {
+        "store_id": "abc123",
+        "password": "def456"
+    },
+    "2": {
+        "store_id": "same",
+        "password": "same"
+    },
+    "3": {
+        "store_id": "x",
+        "password": "y"
+    },
+    "4": {
+        "store_id": "b5a2c96250612366ea272ffac6d9744aaf4b45aacd96aa7cfcb931ee3b558259",
+        "password": "b5a2c96250612366ea272ffac6d9744aaf4b45aacd96aa7cfcb931ee3b558259"
+    }
+}
