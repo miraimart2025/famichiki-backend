@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException, Header
+from fastapi import FastAPI, Depends, Request, HTTPException, Header
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime, timedelta
 import pandas as pd
@@ -9,11 +10,12 @@ import pytz
 import os
 from dotenv import load_dotenv
 import json
-
-from fastapi import Request
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from pydantic import BaseModel
+
+from users_manager.users_manager import UsersManager
+from services.auth_service import AuthService
 
 load_dotenv()
 app = FastAPI()
@@ -211,9 +213,6 @@ def predict_sales_at(
 
 
 # AuthServiceを初期化
-from services.auth_service import AuthService
-from users_manager.users_manager import UsersManager
-
 users_manager = UsersManager()
 secret_key = os.getenv("SECRET_KEY")
 auth_service = AuthService(users_manager, secret_key)
@@ -240,14 +239,16 @@ def login(request: LoginRequest):
     
     return TokenResponse(access_token=token)
 
+# JWTをヘッダから取得するためのスキーム
+bearer_scheme = HTTPBearer(auto_error=True)
 
-@app.get("/auth/verify")
-def verify_token(Authorization: str = Header(...)):
-    """
-    AuthorizationヘッダからJWTを検証
-    """
-    token = Authorization.replace("Bearer ", "")
+def get_current_token(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
+    token = credentials.credentials  # ここにJWTが入る
     payload = auth_service.verify_jwt(token)
     if not payload:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
+    return payload
+
+@app.get("/auth/verify")
+def verify_token(payload=Depends(get_current_token)):
     return {"store_id": payload["store_id"], "message": "Token is valid"}

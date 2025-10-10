@@ -50,14 +50,11 @@ class AuthService(AuthService_abs):
         except jwt.InvalidTokenError:
             return None
 
-    def _hash_store_id(self, store_id: str) -> str:
-        return hashlib.sha256(store_id.encode()).hexdigest()
-
     def _hash_password(self, password: str) -> str:
         return hashlib.sha256(password.encode()).hexdigest()
     
     def _hash_user_data(self, store_id: str, password: str) -> dict:
         return {
-            'store_id': self._hash_store_id(store_id),
+            'store_id': store_id,
             'password': self._hash_password(password)
         }

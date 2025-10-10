@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import json
 import os
 
-USERS_PATH = 'users_manager.users.json'
+USERS_PATH = 'users_manager/users.json'
 
 class UsersManager_abs(ABC): # ABCを継承することで抽象クラスとなる
     @abstractmethod
@@ -26,6 +26,7 @@ class UsersManager(UsersManager_abs):
         """
         # 空ファイルなら初期化
         if not os.path.exists(self.users_path) or os.path.getsize(self.users_path) == 0:
+            print("ユーザーデータが存在しないため、初期化します。")
             return {}
         try:
             with open(self.users_path, "r", encoding="utf-8") as f:
