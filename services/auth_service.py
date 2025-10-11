@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import jwt
 from datetime import datetime, timedelta, timezone
-from users_manager.users_manager import UsersManager, UserData
+from users_manager.users_manager import UsersManager
 
 class AuthService_abs(ABC):
     @abstractmethod
