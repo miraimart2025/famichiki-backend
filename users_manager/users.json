@@ -1,6 +1,7 @@
 {
    "1": {
         "store_id": "dummy_id",
-        "password": "b5a2c96250612366ea272ffac6d9744aaf4b45aacd96aa7cfcb931ee3b558259"
+        "password": "23bc574d45a5fa0a81cb542ef622a9deddee52886b6c9283c8612923dae540f5",
+        "user_salt": "d1a2f33e3187d062bfa115aff89dc67b"
     }
 }

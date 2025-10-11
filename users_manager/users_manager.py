@@ -1,23 +1,31 @@
 from abc import ABC, abstractmethod
 import json
 import os
+import hashlib
+from pydantic import BaseModel
 
 USERS_PATH = 'users_manager/users.json'
 
+class UserData(BaseModel):
+    store_id: str
+    password: str
+    user_salt: str  
+
 class UsersManager_abs(ABC): # ABCを継承することで抽象クラスとなる
     @abstractmethod
-    def create_user(self, hashed_user_data: dict) -> None:
+    def create_user(self, input_user_store_id: str, input_user_password: str) -> UserData | None:
         pass
 
     @abstractmethod
-    def verify_credentials(self, hashed_user_data: dict) -> bool:
+    def verify_credentials(self, input_user_store_id: str, input_user_password: str) -> bool:
         pass
 
 class UsersManager(UsersManager_abs):
-    def __init__(self, users_path: str = USERS_PATH):
+    def __init__(self, users_path: str = USERS_PATH, fixed_salt: str = None):
         self.users_path = users_path
         self.users = self._load_users()
         self.next_id = self._get_next_id()
+        self._fixed_salt = fixed_salt or ''
 
     def _load_users(self) -> dict:
         """
@@ -44,35 +52,64 @@ class UsersManager(UsersManager_abs):
         """
         ユーザーデータをJSONファイルに保存する
         """
+        os.makedirs(os.path.dirname(self.users_path), exist_ok=True)
+
         with open(self.users_path, 'w', encoding='utf-8') as f:
             json.dump(self.users, f, ensure_ascii=False, indent=4)
 
-    def _isexist_user(self, hashed_user_data):
+    def _isexist_user_by_store_id(self, user_id: str):
         """
         store_id が既に存在するか確認する
         """
         for user in self.users.values():
-            if hashed_user_data['store_id'] == user.get('store_id'):
+            if user_id == user.get('store_id'):
                 return True
         return False
+    
+    def _hash_and_salt_password(self, password: str, salt: str) -> str:
+        return hashlib.pbkdf2_hmac(
+            'sha256',
+            password.encode('utf-8'),
+            salt.encode('utf-8'),
+            100_000
+        ).hex()
 
-    def create_user(self, hashed_user_data):
+    def create_user(self, input_user_store_id: str, input_user_password: str) -> UserData | None:
         """
         ユーザーを作成し、IDを割り当てて保存する
         """
         # すでに同じユーザーが存在する場合はNoneを返す
-        if self._isexist_user(hashed_user_data):
+        if self._isexist_user_by_store_id(input_user_store_id):
             return None
-        
         # 新しいユーザーIDを割り当てる
         user_id = self.next_id
         self.next_id += 1
-        self.users[user_id] = hashed_user_data
+
+        # ユーザー固有のソルトを生成
+        user_salt = os.urandom(16).hex()
+
+        # パスワードをハッシュ化して保存
+        save_user_data = UserData(
+            store_id=input_user_store_id,
+            password=self._hash_and_salt_password(input_user_password, user_salt+self._fixed_salt),
+            user_salt=user_salt
+        )
+        self.users[str(user_id)] = save_user_data.dict()
         self._save()
-        return hashed_user_data
-    
-    def verify_credentials(self, hashed_user_data):
+        return save_user_data
+
+    def verify_credentials(self, input_user_store_id: str, input_user_password: str) -> bool:
         """
         ユーザーデータが存在するか確認する
         """
-        return self._isexist_user(hashed_user_data)
+        for user in self.users.values():
+            if input_user_store_id == user.get('store_id'):
+                hashed_input_password = self._hash_and_salt_password(
+                    input_user_password,
+                    user.get('user_salt') + self._fixed_salt
+                )
+                if hashed_input_password == user.get('password'):
+                    return True
+        return False
+
+   
