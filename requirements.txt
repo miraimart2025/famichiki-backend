@@ -8,3 +8,4 @@ pytz
 python-dotenv
 gspread
 oauth2client
+PyJWT

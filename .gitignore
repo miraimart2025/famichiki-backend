@@ -3,3 +3,5 @@ __pycache__/
 .env
 GOOGLE_SERVICE_ACCOUNT_JSON
 .venv
+venv_backend/
+.DS_Store
