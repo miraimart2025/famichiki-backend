@@ -1,12 +1,18 @@
 import pytest
 import os
+from dotenv import load_dotenv
 import json
 import tempfile
+
 from users_manager.users_manager import UsersManager
 from services.auth_service import AuthService
 
+load_dotenv()
+
 # テスト用 JSON のパス
 TEST_USERS_PATH = os.path.join(os.path.dirname(__file__), "test_users.json")
+secret_key = os.getenv("SECRET_KEY")
+
 
 @pytest.fixture
 def users_manager(monkeypatch):
@@ -15,7 +21,7 @@ def users_manager(monkeypatch):
 @pytest.fixture
 def auth_service(users_manager):
     """AuthService のインスタンス"""
-    return AuthService(users_manager, secret_key="test_secret")
+    return AuthService(users_manager, secret_key=secret_key)
 
 # --- UsersManager のテスト ---
 
@@ -57,7 +63,7 @@ def test_expired_jwt(auth_service):
 def test_authenticate_success(monkeypatch, auth_service):
     # 登録済みユーザーを用意
     hashed = {
-        "store_id": auth_service._hash_store_id("dummy"),
+        "store_id": "dummy_id",
         "password": auth_service._hash_password("dummy")
     }
     auth_service.users_manager.create_user(hashed)
@@ -67,7 +73,7 @@ def test_authenticate_success(monkeypatch, auth_service):
 
     print("Users:", auth_service.users_manager.users)
 
-    token = auth_service.authenticate("dummy", "dummy")
+    token = auth_service.authenticate("dummy_id", "dummy")
     assert token is not None
     payload = auth_service.verify_jwt(token)
     assert payload["store_id"] == hashed["store_id"]
