@@ -1,18 +1,22 @@
 {
     "1": {
         "store_id": "abc123",
-        "password": "def456"
+        "password": "7a45cea97b42aa6dfd81b59b35f1ef6124fc160e0c53c453eb5829d9e09fdb0d",
+        "user_salt": "92918a66d5a2d95a953ecdcffca0fa2e"
     },
     "2": {
         "store_id": "same",
-        "password": "same"
+        "password": "5e756e7cb0d5955675edf85567d1cf0aeee6a8fa151acdb2ab4b302b84dcfd84",
+        "user_salt": "b40a32c75b6eb58a19b38392ec48f84d"
     },
     "3": {
         "store_id": "x",
-        "password": "y"
+        "password": "7cd23681d912d4ab451bb1a8f874cf5856a798a6ad1e81596759f1eeb6ee2be2",
+        "user_salt": "19bb82c114ed1ef5d310ea3ac6580269"
     },
     "4": {
         "store_id": "dummy_id",
-        "password": "b5a2c96250612366ea272ffac6d9744aaf4b45aacd96aa7cfcb931ee3b558259"
+        "password": "23bc574d45a5fa0a81cb542ef622a9deddee52886b6c9283c8612923dae540f5",
+        "user_salt": "d1a2f33e3187d062bfa115aff89dc67b"
     }
 }
