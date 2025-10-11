@@ -1,5 +1,7 @@
-from fastapi import FastAPI, Depends, Request, HTTPException, Header
+from fastapi import FastAPI, Request, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import Depends, HTTPException
+from starlette.status import HTTP_401_UNAUTHORIZED
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime, timedelta
 import pandas as pd
@@ -18,7 +20,67 @@ from users_manager.users_manager import UsersManager
 from services.auth_service import AuthService
 
 load_dotenv()
+
+# AuthServiceを初期化
+users_manager = UsersManager()
+secret_key = os.getenv("SECRET_KEY")
+auth_service = AuthService(users_manager, secret_key)
+
+# FastAPIアプリケーションの初期化
 app = FastAPI()
+
+# CORS設定
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# JWT関連設定
+bearer_scheme = HTTPBearer(auto_error=True)
+
+def get_current_token(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+):
+    token = credentials.credentials
+    payload = auth_service.verify_jwt(token)
+    if not payload:
+        raise HTTPException(
+            status_code=HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+        )
+    return payload
+
+def get_current_user(payload=Depends(get_current_token)):
+    return payload["store_id"]
+
+# リクエストボディ用スキーマ
+class LoginRequest(BaseModel):
+    store_id: str
+    password: str
+
+# レスポンス用スキーマ
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+@app.post("/auth/login", response_model=TokenResponse)
+def login(request: LoginRequest):
+    """
+    認証API：
+    store_idとpasswordを受け取り、認証成功時にJWTを返す。
+    """
+    token = auth_service.authenticate(request.store_id, request.password)
+    if token is None:
+        raise HTTPException(status_code=401, detail="Invalid store_id or password")
+    
+    return TokenResponse(access_token=token)
+
+@app.get("/auth/verify")
+def verify_token(current_user=Depends(get_current_user)):
+    return {"store_id": current_user, "message": "Token is valid"}
 
 def log_to_spreadsheet(button_name: str, timestamp: str):
     scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
@@ -29,26 +91,22 @@ def log_to_spreadsheet(button_name: str, timestamp: str):
     sheet = client.open("famichiki").sheet1
     sheet.append_row([timestamp, button_name])
 
-from pydantic import BaseModel
 
 class ButtonClick(BaseModel):
     button_name: str
 
 @app.post("/log_button_click")
-async def log_button_click(data: ButtonClick):
+async def log_button_click(
+    data: ButtonClick,
+    current_user=Depends(get_current_user)
+):
     JST = pytz.timezone("Asia/Tokyo")
     timestamp = datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S")
+    store_id = current_user
     log_to_spreadsheet(data.button_name, timestamp)
     return {"status": "success", "message": f"{data.button_name} logged at {timestamp}"}
 
-# CORS設定
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+
         
     
 # XGBoost Boosterモデルの読み込み
@@ -78,10 +136,12 @@ def get_weather_hakodate():
     }
         
 @app.get("/predict")
-def predict_sales_batch():  
+def predict_sales_batch(current_user=Depends(get_current_user)):
     JST = pytz.timezone("Asia/Tokyo")
     now = datetime.now(JST)
     weather = get_weather_hakodate()
+    
+    store_id = current_user # ここでstore_idを使用可能
     
     span_times = [
         "span_time_8h~9h",
@@ -143,7 +203,8 @@ from typing import Optional
 @app.get("/predict_at")
 def predict_sales_at(
     date: str = Query(..., description="日付 (YYYY-MM-DD)"),
-    hour: int = Query(..., ge=0, le=23, description="開始時刻 (0〜23時)")
+    hour: int = Query(..., ge=0, le=23, description="開始時刻 (0〜23時)"),
+    current_user=Depends(get_current_user)
 ):
     try:
         naive_dt = datetime.strptime(date, "%Y-%m-%d").replace(hour=hour)
@@ -153,7 +214,9 @@ def predict_sales_at(
         return {"error": "Invalid date format. Use YYYY-MM-DD."}
             
     weather = get_weather_hakodate()
-    
+
+    store_id = current_user
+
     span_times = [
         "span_time_8h~9h",
         "span_time_10h~11h",
@@ -212,43 +275,3 @@ def predict_sales_at(
             
 
 
-# AuthServiceを初期化
-users_manager = UsersManager()
-secret_key = os.getenv("SECRET_KEY")
-auth_service = AuthService(users_manager, secret_key)
-
-# リクエストボディ用スキーマ
-class LoginRequest(BaseModel):
-    store_id: str
-    password: str
-
-# レスポンス用スキーマ
-class TokenResponse(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
-
-@app.post("/auth/login", response_model=TokenResponse)
-def login(request: LoginRequest):
-    """
-    認証API：
-    store_idとpasswordを受け取り、認証成功時にJWTを返す。
-    """
-    token = auth_service.authenticate(request.store_id, request.password)
-    if token is None:
-        raise HTTPException(status_code=401, detail="Invalid store_id or password")
-    
-    return TokenResponse(access_token=token)
-
-# JWTをヘッダから取得するためのスキーム
-bearer_scheme = HTTPBearer(auto_error=True)
-
-def get_current_token(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
-    token = credentials.credentials  # ここにJWTが入る
-    payload = auth_service.verify_jwt(token)
-    if not payload:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
-    return payload
-
-@app.get("/auth/verify")
-def verify_token(payload=Depends(get_current_token)):
-    return {"store_id": payload["store_id"], "message": "Token is valid"}
