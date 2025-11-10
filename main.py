@@ -1,6 +1,7 @@
-from fastapi import FastAPI, Request, Header
+from fastapi import FastAPI, Request, Header, Cookie
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi import Depends, HTTPException
+from fastapi.responses import JSONResponse
 from starlette.status import HTTP_401_UNAUTHORIZED
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime, timedelta
@@ -41,16 +42,14 @@ app.add_middleware(
 # JWT関連設定
 bearer_scheme = HTTPBearer(auto_error=True)
 
-def get_current_token(
-    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
-):
-    token = credentials.credentials
-    payload = auth_service.verify_jwt(token)
+def get_current_token(access_token: str = Cookie(None)):
+    if not access_token:
+        raise HTTPException(status_code=401, detail="No token found")
+    
+    payload = auth_service.verify_jwt(access_token)
     if not payload:
-        raise HTTPException(
-            status_code=HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token",
-        )
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    
     return payload
 
 def get_current_user(payload=Depends(get_current_token)):
@@ -76,7 +75,17 @@ def login(request: LoginRequest):
     if token is None:
         raise HTTPException(status_code=401, detail="Invalid store_id or password")
     
-    return TokenResponse(access_token=token)
+    # CookieにJWTをセット
+    response = JSONResponse(content={"message": "Logged in"})
+    response.set_cookie(
+        key="access_token",
+        value=token,
+        httponly=True,        # JSからアクセス不可
+        secure=True,          # HTTPS推奨
+        samesite="strict",    # CSRF対策
+        max_age=15*60         # 15分
+    )
+    return response
 
 @app.get("/auth/verify")
 def verify_token(current_user=Depends(get_current_user)):
