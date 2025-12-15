@@ -1,5 +1,12 @@
-from users_manager.users_manager import UsersManager
 import os
+import sys
+from pathlib import Path
+
+# Allow running this file directly: python users_manager/create_user.py
+if __package__ is None:
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from users_manager.users_manager import UsersManager
 
 # 固定ソルトは環境変数で管理
 FIXED_SALT = os.getenv("FIXED_SALT")
@@ -9,7 +16,8 @@ users_manager = UsersManager(fixed_salt=FIXED_SALT)
 
 # 管理者が作りたいユーザー情報
 new_users = [
-    {"store_id": "store_a", "password": "pass_a"},
+    {"store_id": "hondori", "password": "0000"},
+    {"store_id": "mihara5chome", "password": "0000"},
 ]
 
 for u in new_users:

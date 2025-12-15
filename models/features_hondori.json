@@ -1,0 +1,22 @@
+[
+  "hour_cos",
+  "hour_sin",
+  "hour",
+  "is_rain",
+  "is_weekend",
+  "dow_cos",
+  "dayofyear",
+  "is_payday_25",
+  "weekofyear",
+  "is_holiday",
+  "is_comfort_temp",
+  "day",
+  "days_to_payday_25",
+  "dayofweek",
+  "month",
+  "apparent_temperature",
+  "is_strong_wind",
+  "dow_sin",
+  "is_payweek_before_25",
+  "year"
+]

@@ -1,7 +1,17 @@
 {
-   "1": {
+    "1": {
         "store_id": "dummy_id",
         "password": "23bc574d45a5fa0a81cb542ef622a9deddee52886b6c9283c8612923dae540f5",
         "user_salt": "d1a2f33e3187d062bfa115aff89dc67b"
+    },
+    "2": {
+        "store_id": "hondori",
+        "password": "467d83d238e923b2de2ea9e88c883cb596475528d45ece6a0af41321f1b47f23",
+        "user_salt": "ac45a862d192ffb843d0af2d2925b0a0"
+    },
+    "3": {
+        "store_id": "mihara5chome",
+        "password": "ba8cb6b872e54bfc08d6c76b43a730c4ceec5e550507a703da0819b7112b0aed",
+        "user_salt": "ffa37c691087d40eb3fc1834cf5c791c"
     }
 }
