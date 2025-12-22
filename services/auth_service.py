@@ -1,11 +1,14 @@
 from abc import ABC, abstractmethod
-import jwt
 from datetime import datetime, timedelta, timezone
+from typing import Optional
+
+import jwt
+
 from users_manager.users_manager import UsersManager
 
 class AuthService_abs(ABC):
     @abstractmethod
-    def authenticate(self, store_id: str, password: str) -> dict | None:
+    def authenticate(self, store_id: str, password: str) -> Optional[dict]:
         pass
 
     @abstractmethod
@@ -13,7 +16,7 @@ class AuthService_abs(ABC):
         pass
 
     @abstractmethod
-    def verify_jwt(self, token: str) -> dict | None:
+    def verify_jwt(self, token: str) -> Optional[dict]:
         pass
 
 class AuthService(AuthService_abs):
@@ -21,7 +24,7 @@ class AuthService(AuthService_abs):
         self.users_manager = users_manager
         self._SECRET_KEY = secret_key
 
-    def authenticate(self, store_id: str, password: str) -> dict | None:
+    def authenticate(self, store_id: str, password: str) -> Optional[dict]:
         # ユーザーが存在しない場合はNoneを返す
         if not self.users_manager.verify_credentials(store_id, password):
             return None
@@ -37,7 +40,7 @@ class AuthService(AuthService_abs):
         token = jwt.encode(payload, self._SECRET_KEY, algorithm="HS256")
         return token
 
-    def verify_jwt(self, token: str) -> dict | None:
+    def verify_jwt(self, token: str) -> Optional[dict]:
         try:
             payload = jwt.decode(token, self._SECRET_KEY, algorithms=["HS256"])
             return payload

@@ -30,10 +30,14 @@ auth_service = AuthService(users_manager, secret_key)
 # FastAPIアプリケーションの初期化
 app = FastAPI()
 
-# CORS設定
+# CORS設定（credentials: include を使う場合は * を使えない）
+CORS_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

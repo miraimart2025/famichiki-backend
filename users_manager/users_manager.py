@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import json
 import os
 import hashlib
+from typing import Optional
 from pydantic import BaseModel
 
 USERS_PATH = 'users_manager/users.json'
@@ -13,7 +14,7 @@ class UserData(BaseModel):
 
 class UsersManager_abs(ABC): # ABCを継承することで抽象クラスとなる
     @abstractmethod
-    def create_user(self, input_user_store_id: str, input_user_password: str) -> UserData | None:
+    def create_user(self, input_user_store_id: str, input_user_password: str) -> Optional[UserData]:
         pass
 
     @abstractmethod
@@ -74,7 +75,7 @@ class UsersManager(UsersManager_abs):
             100_000
         ).hex()
 
-    def create_user(self, input_user_store_id: str, input_user_password: str) -> UserData | None:
+    def create_user(self, input_user_store_id: str, input_user_password: str) -> Optional[UserData]:
         """
         ユーザーを作成し、IDを割り当てて保存する
         """
