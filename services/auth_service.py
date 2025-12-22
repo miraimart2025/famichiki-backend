@@ -42,6 +42,8 @@ class AuthService(AuthService_abs):
             payload = jwt.decode(token, self._SECRET_KEY, algorithms=["HS256"])
             return payload
         except jwt.ExpiredSignatureError:
+            print("AuthService: JWT expired")
             return None
         except jwt.InvalidTokenError:
+            print("AuthService: JWT invalid")
             return None

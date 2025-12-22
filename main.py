@@ -30,24 +30,33 @@ auth_service = AuthService(users_manager, secret_key)
 # FastAPIアプリケーションの初期化
 app = FastAPI()
 
-# CORS設定
+# 開発用：フロントの origin を列挙
+origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:8000",
+    "http://127.0.0.1:3000",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=origins,        # '<・*>' ではなく実際の origin を指定する
+    allow_credentials=True,       # 必須（fetch(..., credentials: 'include') を許可）
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # JWT関連設定
 bearer_scheme = HTTPBearer(auto_error=True)
 
 def get_current_token(access_token: str = Cookie(None)):
     if not access_token:
+        print("access_token is None")
         raise HTTPException(status_code=401, detail="No token found")
     
     payload = auth_service.verify_jwt(access_token)
     if not payload:
+        print("Invalid or expired token")
         raise HTTPException(status_code=401, detail="Invalid or expired token")
     
     return payload
@@ -74,22 +83,37 @@ def login(request: LoginRequest):
     token = auth_service.authenticate(request.store_id, request.password)
     if token is None:
         raise HTTPException(status_code=401, detail="Invalid store_id or password")
-    
-    # CookieにJWTをセット
-    response = JSONResponse(content={"message": "Logged in"})
+
+    # トークンをレスポンスボディにも返しつつ、Cookie にセットする
+    # フロント側が fetch(..., credentials: 'include') を使っている場合、
+    # ブラウザが Set-Cookie を受け取り Cookie を保存するには
+    # - サーバ側で Access-Control-Allow-Credentials: true が設定されていること
+    # - レスポンスに Set-Cookie ヘッダが含まれていること
+    # - ブラウザ側でリクエストに credentials: 'include' が指定されていること
+    # が必要です。
+    response = JSONResponse(content={"access_token": token})
+    is_dev = True
+    # 開発中は secure=False にしておく（本番は HTTPS が必須で secure=True にする）
+    # クロスサイト XHR/fetch で Cookie を利用する場合、SameSite=None が必要になることが多い
+    # （ブラウザによっては localhost での挙動に差異があります）。
+    print("auth/login: Setting cookie with secure =", not is_dev)
     response.set_cookie(
         key="access_token",
         value=token,
-        httponly=True,        # JSからアクセス不可
-        secure=True,          # HTTPS推奨
-        samesite="strict",    # CSRF対策
-        max_age=15*60         # 15分
+        httponly=True,
+        secure= True,
+        samesite="none",
+        max_age=20*60,
     )
     return response
 
 @app.get("/auth/verify")
 def verify_token(current_user=Depends(get_current_user)):
     return {"store_id": current_user, "message": "Token is valid"}
+
+@app.get("/auth/me")
+def me(current_user=Depends(get_current_user)):
+    return {"store_id": current_user}
 
 def log_to_spreadsheet(button_name: str, timestamp: str):
     scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
@@ -100,6 +124,11 @@ def log_to_spreadsheet(button_name: str, timestamp: str):
     sheet = client.open("famichiki").sheet1
     sheet.append_row([timestamp, button_name])
 
+
+@app.get("/debug/cookies")
+def debug_cookies(request: Request):
+    """開発用: 受け取った Cookie をそのまま返す (本番では無効化推奨)。"""
+    return {"cookies": dict(request.cookies)}
 
 class ButtonClick(BaseModel):
     button_name: str
