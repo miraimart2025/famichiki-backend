@@ -114,16 +114,12 @@ except Exception:
 # =========================
 # Models
 # =========================
-# ★ models/ 配下に置く想定
-#  - hondori : model_hondori.json, features_hondori.json
-#  - mihara  : model_mihara5chome_clf_cap10.json, model_mihara5chome_reg_cap10.json
-#            : features_mihara5chome_cap10.json, cap_mihara5chome.json
 MODEL_PATHS = {
     "hondori": {
         "type": "single",
         "model": "./models/model_hondori.json",
         "features": "./models/features_hondori.json",
-        "cap": 10,  # 出力を 0〜10 に丸めたいので統一で持たせる（必要なければ None でも可）
+        "cap": 10,
     },
     "mihara5chome": {
         "type": "two_stage",
@@ -144,6 +140,10 @@ STORE_MAP = {
 MODELS = {}    # store -> dict
 FEATURES = {}  # store -> feature_order
 CAPS = {}      # store -> int cap
+
+# ★ 深夜（0〜5時）を強制0にするルール（miharaのみ適用）
+QUIET_HOURS = set(range(0, 6))  # 0,1,2,3,4,5
+QUIET_RULE_STORES = {"mihara5chome"}  # 両店舗にしたいなら {"hondori","mihara5chome"}
 
 def _load_json(path: str):
     with open(path, "r", encoding="utf-8") as f:
@@ -180,7 +180,6 @@ def load_store_model(store_name: str):
         booster = xgb.Booster()
         booster.load_model(model_path)
         MODELS[store_name] = {"type": "single", "booster": booster}
-
         print(f"[loaded] {store_name} single model={model_path} features={len(feature_order)} cap={CAPS[store_name]}")
 
     elif stype == "two_stage":
@@ -197,7 +196,6 @@ def load_store_model(store_name: str):
         reg.load_model(reg_path)
 
         MODELS[store_name] = {"type": "two_stage", "clf": clf, "reg": reg}
-
         print(f"[loaded] {store_name} two_stage clf={clf_path} reg={reg_path} features={len(feature_order)} cap={CAPS[store_name]}")
     else:
         raise ValueError(f"unknown model type: {stype}")
@@ -327,7 +325,6 @@ def make_feature_row(dt_jst: datetime, w: dict):
 def _safe_round_clip_to_int(x: float, cap: int) -> int:
     if x is None or (isinstance(x, float) and np.isnan(x)):
         return 0
-    # clip then round
     x = float(np.clip(x, 0, cap))
     return int(round(x))
 
@@ -336,10 +333,8 @@ def _predict_single(booster: xgb.Booster, dfX: pd.DataFrame, feature_order: list
     return booster.predict(dmat)
 
 def _predict_two_stage(clf: xgb.Booster, reg: xgb.Booster, dfX: pd.DataFrame, feature_order: list):
-    # clf: binary logistic (predict gives prob if objective is binary:logistic)
     dmat = xgb.DMatrix(dfX, feature_names=feature_order)
-    p_nonzero = clf.predict(dmat)  # shape (n,) probability
-
+    p_nonzero = clf.predict(dmat)  # probability
     pred_log = reg.predict(dmat)   # log1p scale
     pred_pos = np.expm1(pred_log)
     y_pred = p_nonzero * pred_pos
@@ -354,14 +349,33 @@ def predict(store_id: str, base_dt_jst: datetime):
     feature_order = FEATURES[store_name]
     cap = CAPS.get(store_name, 10)
 
+    # 予報は1回だけ取得
     forecast_map = get_hourly_forecast_hakodate(hours=48)
+
+    results = []
+
+    # 0〜5時強制0を適用するか
+    apply_quiet_rule = (store_name in QUIET_RULE_STORES)
 
     rows, dts = [], []
     for i in range(8):
         dt = (base_dt_jst + timedelta(hours=i)).replace(minute=0, second=0, microsecond=0)
+
+        # ★ 0〜5時は必ず0（miharaだけ適用）
+        if apply_quiet_rule and (dt.hour in QUIET_HOURS):
+            results.append({
+                "datetime": dt.strftime("%Y-%m-%d %H:%M"),
+                "predicted_sales": 0,
+            })
+            continue
+
         w = forecast_map.get(dt, {"temperature": np.nan, "humidity": np.nan, "wind": np.nan, "rain": 0.0, "snow": 0.0})
         rows.append(make_feature_row(dt, w))
         dts.append(dt)
+
+    # 全部が深夜でrows空の場合
+    if len(rows) == 0:
+        return results
 
     dfX = pd.DataFrame(rows)
 
@@ -376,12 +390,23 @@ def predict(store_id: str, base_dt_jst: datetime):
     else:
         preds, _ = _predict_two_stage(model_pack["clf"], model_pack["reg"], dfX, feature_order)
 
-    results = []
-    for dt, p in zip(dts, preds):
+    # rowsに対応する予測を、resultsへ突っ込む（深夜分はすでに埋め済み）
+    pred_iter = iter(preds)
+    for i in range(8):
+        dt = (base_dt_jst + timedelta(hours=i)).replace(minute=0, second=0, microsecond=0)
+
+        if apply_quiet_rule and (dt.hour in QUIET_HOURS):
+            # すでに0を入れてる
+            continue
+
+        p = float(next(pred_iter))
         results.append({
             "datetime": dt.strftime("%Y-%m-%d %H:%M"),
-            "predicted_sales": _safe_round_clip_to_int(float(p), cap),
+            "predicted_sales": _safe_round_clip_to_int(p, cap),  # 0〜CAPの整数
         })
+
+    # 8件を時刻順に揃える（深夜continueで順序が崩れるのを防ぐ）
+    results = sorted(results, key=lambda x: x["datetime"])
     return results
 
 # =========================
