@@ -80,14 +80,18 @@ def verify_token(current_user=Depends(get_current_user)):
 # =========================
 # Spreadsheet logging
 # =========================
-def log_to_spreadsheet(button_name: str, timestamp: str):
+def log_to_spreadsheet(store_id: str, button_name: str, timestamp: str):
     scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
     json_str = os.getenv('GOOGLE_SERVICE_ACCOUNT_JSON')
+    if not json_str:
+        raise RuntimeError("環境変数 GOOGLE_SERVICE_ACCOUNT_JSON が設定されていません")
     json_dict = json.loads(json_str)
     creds = ServiceAccountCredentials.from_json_keyfile_dict(json_dict, scope)
     client = gspread.authorize(creds)
+
     sheet = client.open("famichiki").sheet1
-    sheet.append_row([timestamp, button_name])
+    # ★ store_id も一緒に記録
+    sheet.append_row([timestamp, store_id, button_name])
 
 class ButtonClick(BaseModel):
     button_name: str
@@ -97,8 +101,13 @@ JST = pytz.timezone("Asia/Tokyo")
 @app.post("/log_button_click")
 async def log_button_click(data: ButtonClick, current_user=Depends(get_current_user)):
     timestamp = datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S")
-    log_to_spreadsheet(data.button_name, timestamp)
-    return {"status": "success", "message": f"{data.button_name} logged at {timestamp}"}
+    store_id = str(current_user)  # JWTから取り出したログインID（store_id）
+    log_to_spreadsheet(store_id, data.button_name, timestamp)
+    return {
+        "status": "success",
+        "store_id": store_id,
+        "message": f"{data.button_name} logged by {store_id} at {timestamp}",
+    }
 
 # =========================
 # Holiday (fallback)
