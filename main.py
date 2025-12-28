@@ -40,9 +40,14 @@ async def log_button_click(data: ButtonClick):
     return {"status": "success", "message": f"{data.button_name} logged at {timestamp}"}
 
 # CORS設定
+origins = [
+    "http://localhost:3000",
+    "http://storage.googleapis.com", # GCSのオリジンを追加
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,         # ["*"] から具体的なリストに変更
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
