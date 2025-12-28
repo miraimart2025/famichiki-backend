@@ -34,6 +34,7 @@ app = FastAPI()
 CORS_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "http://storage.googleapis.com",
 ]
 app.add_middleware(
     CORSMiddleware,

@@ -60,8 +60,8 @@ uvicorn main:app --reload
 ```json
 {
   "predictions": [
-    { "hour": "14", "predicted_sales": 42 },
-    { "hour": "15", "predicted_sales": 38 }
+    { "datetime": "2024-05-01 14:00", "predicted_sales": 42 },
+    { "datetime": "2024-05-01 15:00", "predicted_sales": 38 }
   ]
 }
 ```
@@ -77,8 +77,8 @@ uvicorn main:app --reload
 ```json
 {
   "predictions": [
-    { "datetime": "2024-05-01 10:00", "predicted_sales": 41.5 },
-    { "datetime": "2024-05-01 11:00", "predicted_sales": 43.2 }
+    { "datetime": "2024-05-01 10:00", "predicted_sales": 41 },
+    { "datetime": "2024-05-01 11:00", "predicted_sales": 43 }
   ]
 }
 ```
