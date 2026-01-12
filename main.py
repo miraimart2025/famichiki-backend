@@ -31,18 +31,17 @@ auth_service = AuthService(users_manager, secret_key)
 
 app = FastAPI()
 
-CORS_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://storage.googleapis.com",
-]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=CORS_ORIGINS,
+    allow_origins=[
+        "https://storage.googleapis.com",
+        "http://localhost:3000"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 bearer_scheme = HTTPBearer(auto_error=True)
 
