@@ -13,5 +13,10 @@
         "store_id": "mihara5chome",
         "password": "ba8cb6b872e54bfc08d6c76b43a730c4ceec5e550507a703da0819b7112b0aed",
         "user_salt": "ffa37c691087d40eb3fc1834cf5c791c"
+    },
+    "4": {
+        "store_id": "0000",
+        "password": "a9114f8ee04ee99fd142c30bb84e80dc99e223080d6085dd9c0c389bbcd2d960",
+        "user_salt": "c2d010f7a7e6729a21b3c34fa66d9d14"
     }
 }

@@ -16,6 +16,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 from pydantic import BaseModel
 import numpy as np
 import math
+import random
 
 from users_manager.users_manager import UsersManager
 from services.auth_service import AuthService
@@ -349,7 +350,20 @@ def _predict_two_stage(clf: xgb.Booster, reg: xgb.Booster, dfX: pd.DataFrame, fe
     y_pred = p_nonzero * pred_pos
     return y_pred, p_nonzero
 
+def _predict_random_range(base_dt_jst: datetime, hours: int = 8, low: int = 2, high: int = 5):
+    results = []
+    for i in range(hours):
+        dt = (base_dt_jst + timedelta(hours=i)).replace(minute=0, second=0, microsecond=0)
+        results.append({
+            "datetime": dt.strftime("%Y-%m-%d %H:%M"),
+            "predicted_sales": random.randint(low, high),
+        })
+    return results
+
 def predict(store_id: str, base_dt_jst: datetime):
+    if str(store_id) == "0000":
+        return _predict_random_range(base_dt_jst)
+
     store_name = STORE_MAP.get(str(store_id))
     if store_name is None:
         raise ValueError("unknown store_id")
