@@ -127,8 +127,8 @@ except Exception:
 MODEL_PATHS = {
     "hondori": {
         "type": "single",
-        "model": "./models/model_hondori.json",
-        "features": "./models/features_hondori.json",
+        "model": "./models/model_hondori_reoptimized.json",
+        "features": "./models/features_hondori_reoptimized.json",
         "cap": 10,
     },
     "mihara5chome": {
